@@ -3,8 +3,8 @@
 ```
 python3 -m  pip install pyppeteer
 
-```
 python3 pyping.py  # 运行程序 , 首次运行 pyppeteer 会安装 chromium 100Mb 左右的内置浏览器程序
+```
 
 ### accomplish 
 1. 登录功能
