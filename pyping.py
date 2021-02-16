@@ -4,7 +4,7 @@ import time
 import asyncio
 
 width, height = 1200, 768
-time_sc_login = 10  # 二维码扫描时间
+time_sc_login = 40  # 二维码扫描时间
 click_freq = 0.3  # 点击间隔
 repost_order = 0.3  # 页面加载时间
 
@@ -31,6 +31,47 @@ async def goto_cart_pages(browser) -> list:
     return pages
 
 
+# maotai J_CheckBox_2738701342774
+# test1 :J_CheckBox_2741016942258
+async def choose_item(pages):
+    for page in pages:
+        await page.bringToFront()
+        while True:
+            try:
+                await page.click('[for=J_CheckBox_2741016942258]')
+                break
+            except:
+                await asyncio.sleep(click_freq)
+                # logging out not find item
+
+
+async def settle(pages):
+    for page in pages:
+        await page.bringToFront()
+        while True:
+            try:
+                await page.click('a[id=J_Go]')
+                print('提交订单')
+                break
+            except:
+                await asyncio.sleep(click_freq)
+                print('未找到结算按钮')
+
+
+async def push_order(pages):
+    for page in pages:
+        await page.bringToFront()
+        while True:
+            try:
+                # await page.click('.btn-area')
+                await page.click('.go-btn')
+                print('提交订单')
+                break
+            except:
+                print('未找到提交订单按钮')
+    print('流程结束')
+
+
 async def main():
     browser = await launch(
         headless=False,
@@ -39,9 +80,11 @@ async def main():
     page = await browser.newPage()
     await login(page)
     pages = await goto_cart_pages(browser)
+    await asyncio.sleep(repost_order)
+    await choose_item(pages)
+    await settle(pages)
+    await push_order(pages)
 
-    # J_CheckBox_2738701342774 : maotai
-    # J_CheckBox_2738748727119 : test
     '''
     print('勾选商品')
     while True:
@@ -79,4 +122,6 @@ async def main():
 
 
 if __name__ == '__main__':
-    asyncio.get_event_loop().run_until_complete(main())
+    # 多browser
+    browsers = [main(), main(), main(), main()]
+    asyncio.get_event_loop().run_until_complete(asyncio.wait(browsers))
