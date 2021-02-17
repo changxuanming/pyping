@@ -1,12 +1,13 @@
 from pyppeteer import launch
 import datetime
-import time
 import asyncio
+import multiprocessing
 
 width, height = 1200, 768
-time_sc_login = 40  # 二维码扫描时间
+time_sc_login = 30  # 二维码扫描时间
 click_freq = 0.3  # 点击间隔
 repost_order = 0.3  # 页面加载时间
+BEFORE_SECOND = 2  # 提前2秒开始循环点击
 
 
 async def login(page):
@@ -23,7 +24,7 @@ async def login(page):
 
 async def goto_cart_pages(browser) -> list:
     pages = []
-    for i in range(5):
+    for i in range(1):
         page = await browser.newPage()
         await page.setViewport({"width": width, "height": height})
         await page.goto('https://cart.tmall.com')
@@ -34,45 +35,59 @@ async def goto_cart_pages(browser) -> list:
 # maotai J_CheckBox_2738701342774
 # test1 :J_CheckBox_2741016942258
 async def choose_item(pages):
+    page_url = []
     for page in pages:
-        await page.bringToFront()
-        while True:
+        page_url.append(page.url)
+    for i in range(len(pages)):
+        await pages[i].bringToFront()
+        while page_url[i] == pages[i].url:
             try:
-                await page.click('[for=J_CheckBox_2741016942258]')
+                await pages[i].click('[for=J_CheckBox_2741016942258]')
                 break
             except:
                 await asyncio.sleep(click_freq)
                 # logging out not find item
 
 
+# 结算按钮
 async def settle(pages):
+    """
+    循环所有页面 点击相应的页面
+        判断页面相应结果是否是对应的要求
+    """
+    page_url = []
     for page in pages:
-        await page.bringToFront()
-        while True:
+        page_url.append(page.url)
+    for i in range(len(pages)):
+        await pages[i].bringToFront()
+        while page_url[i] == pages[i].url:
             try:
-                await page.click('a[id=J_Go]')
-                print('提交订单')
-                break
+                await pages[i].click('#J_SmallSubmit')
+                print('提交结算订单')
             except:
                 await asyncio.sleep(click_freq)
                 print('未找到结算按钮')
 
 
 async def push_order(pages):
+    page_url = []
     for page in pages:
-        await page.bringToFront()
-        while True:
+        page_url.append(page.url)
+    for i in range(len(pages)):
+        await pages[i].bringToFront()
+        while page_url[i] == pages[i].url:
             try:
                 # await page.click('.btn-area')
-                await page.click('.go-btn')
+                await pages[i].click('.go-btn')
                 print('提交订单')
                 break
             except:
+                await asyncio.sleep(click_freq)
                 print('未找到提交订单按钮')
     print('流程结束')
 
 
-async def main():
+async def main(buy_time):
     browser = await launch(
         headless=False,
         args=['--disable-infobars', f'--window-size={width},{height}']
@@ -80,48 +95,30 @@ async def main():
     page = await browser.newPage()
     await login(page)
     pages = await goto_cart_pages(browser)
-    await asyncio.sleep(repost_order)
+
+    # 等待抢购
+    buy_time = datetime.datetime.strptime(buy_time, '%Y-%m-%d %H:%M:%S')
+    wait_second = (buy_time - datetime.datetime.now()).seconds if \
+        (buy_time - datetime.datetime.now()).days >= 0 else 0
+    print('距离时间还有{}秒'.format(wait_second))
+    if wait_second - BEFORE_SECOND > 0:
+        await asyncio.sleep(wait_second)
+
     await choose_item(pages)
     await settle(pages)
+    await asyncio.sleep(0.5)
     await push_order(pages)
-
-    '''
-    print('勾选商品')
-    while True:
-        try:
-            # await page.click('[for=J_CheckBox_2738701342774]')
-            await page.click('[for=J_CheckBox_2737638864341]')
-            break
-        except:
-            await asyncio.sleep(click_freq)
-            print('未找到需要勾选的商品')
-    await asyncio.sleep(repost_order)
-    while True:
-        try:
-            # await page.click('.btn-area')
-            await page.click('a[id=J_Go]')
-            print('提交订单')
-            break
-        except:
-            print('未找到结算按钮')
-    await asyncio.sleep(repost_order)
-    while True:
-        try:
-            # await page.click('.btn-area')
-            await page.click('.go-btn')
-            print('提交订单')
-            break
-        except:
-            print('未找到提交订单按钮')
-    print('流程结束')
-    await asyncio.sleep(300)
-    print('end this app')
-    '''
-
     await asyncio.sleep(3000)
 
 
+def start(buy_time):
+    n_e_l = asyncio.new_event_loop()
+    n_e_l.run_until_complete(main(buy_time))
+
+
 if __name__ == '__main__':
-    # 多browser
-    browsers = [main(), main(), main(), main()]
-    asyncio.get_event_loop().run_until_complete(asyncio.wait(browsers))
+    buy_time = input('请输入开售时间 【2020-02-06(空格)12:55:50】')
+    processes = []
+    for i in range(3):
+        processes.append(multiprocessing.Process(target=start, args=(buy_time,)))
+        processes[i].start()
