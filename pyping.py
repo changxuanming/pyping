@@ -7,7 +7,7 @@ width, height = 1200, 768
 time_sc_login = 30  # 二维码扫描时间
 click_freq = 0.3  # 点击间隔
 repost_order = 0.3  # 页面加载时间
-BEFORE_SECOND = 1  # 提前2秒开始循环点击
+BEFORE_SECOND = 0  # 提前2秒开始循环点击
 
 
 async def login(page):
