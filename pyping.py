@@ -71,17 +71,19 @@ async def settle(pages):
 
 async def push_order(pages):
     page_url = []
-    count = 1
     for page in pages:
         page_url.append(page.url)
-    flag = False
+    count = 1 * len(page_url)
+    flag = []
+    for i in range(len(page_url)):
+        flag.append(False)
     for i in range(len(pages)):
         await pages[i].bringToFront()
-        while page_url[i] == pages[i].url:
+        if page_url[i] == pages[i].url:
             try:
                 await pages[i].click('.go-btn')
                 print('提交订单')
-                flag = True
+                flag[i] = True
                 break
             except:
                 await pages[i].reload()
@@ -89,7 +91,7 @@ async def push_order(pages):
                 count -= 1
                 if count < 0: break
                 print('未找到提交订单按钮')
-        if flag: break
+        if flag[i]: break
     print('流程结束')
 
 
