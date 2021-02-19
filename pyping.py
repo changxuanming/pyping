@@ -77,7 +77,7 @@ async def push_order(pages):
     idx = 0
     while page_url[idx] == pages[idx].url:
         idx = (idx + 1) % len(pages)
-        await pages[i].bringToFront()
+        await pages[idx].bringToFront()
         await pages[idx].reload()
         try:
             await pages[idx].click('.go-btn')
