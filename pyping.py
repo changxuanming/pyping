@@ -4,10 +4,11 @@ import asyncio
 import multiprocessing
 
 width, height = 1200, 768
-time_sc_login = 30  # 二维码扫描时间
+time_sc_login = 20  # 二维码扫描时间
 click_freq = 0.3  # 点击间隔
 repost_order = 0.3  # 页面加载时间
-BEFORE_SECOND = 0  # 提前2秒开始循环点击
+BEFORE_SECOND = 1  # 提前2秒开始循环点击
+page_nums = 20
 
 
 async def login(page):
@@ -19,12 +20,11 @@ async def login(page):
         print('\r 剩余时间：{}'.format(count), end='')
         count -= 1
         await asyncio.sleep(1)
-    print()
 
 
 async def goto_cart_pages(browser) -> list:
     pages = []
-    for i in range(1):
+    for i in range(page_nums):
         page = await browser.newPage()
         await page.setViewport({"width": width, "height": height})
         await page.goto('https://cart.tmall.com')
@@ -42,7 +42,7 @@ async def choose_item(pages):
         await pages[i].bringToFront()
         while page_url[i] == pages[i].url:
             try:
-                await pages[i].click('[for=J_CheckBox_2741016942258]')
+                await pages[i].click('[for=J_CheckBox_2738701342774]')
                 break
             except:
                 await asyncio.sleep(click_freq)
@@ -71,19 +71,25 @@ async def settle(pages):
 
 async def push_order(pages):
     page_url = []
+    count = 1
     for page in pages:
         page_url.append(page.url)
+    flag = False
     for i in range(len(pages)):
         await pages[i].bringToFront()
         while page_url[i] == pages[i].url:
             try:
-                # await page.click('.btn-area')
                 await pages[i].click('.go-btn')
                 print('提交订单')
+                flag = True
                 break
             except:
+                await pages[i].reload()
                 await asyncio.sleep(click_freq)
+                count -= 1
+                if count < 0: break
                 print('未找到提交订单按钮')
+        if flag: break
     print('流程结束')
 
 
@@ -95,6 +101,7 @@ async def main(buy_time):
     page = await browser.newPage()
     await login(page)
     pages = await goto_cart_pages(browser)
+    await choose_item(pages)
 
     # 等待抢购
     buy_time = datetime.datetime.strptime(buy_time, '%Y-%m-%d %H:%M:%S')
@@ -104,9 +111,7 @@ async def main(buy_time):
     if wait_second - BEFORE_SECOND > 0:
         await asyncio.sleep(wait_second)
 
-    await choose_item(pages)
     await settle(pages)
-    await asyncio.sleep(0.1)
     await push_order(pages)
     await asyncio.sleep(3000)
 
@@ -119,6 +124,6 @@ def start(buy_time):
 if __name__ == '__main__':
     buy_time = input('请输入开售时间 【2020-02-06(空格)12:55:50】')
     processes = []
-    for i in range(3):
+    for i in range(1):
         processes.append(multiprocessing.Process(target=start, args=(buy_time,)))
         processes[i].start()
