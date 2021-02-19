@@ -8,7 +8,7 @@ time_sc_login = 20  # 二维码扫描时间
 click_freq = 0.3  # 点击间隔
 repost_order = 0.3  # 页面加载时间
 BEFORE_SECOND = 1  # 提前2秒开始循环点击
-page_nums = 20
+page_nums = 4
 
 
 async def login(page):
@@ -59,6 +59,7 @@ async def settle(pages):
     for page in pages:
         page_url.append(page.url)
     for i in range(len(pages)):
+        await asyncio.sleep(1)
         await pages[i].bringToFront()
         while page_url[i] == pages[i].url:
             try:
@@ -73,25 +74,18 @@ async def push_order(pages):
     page_url = []
     for page in pages:
         page_url.append(page.url)
-    count = 1 * len(page_url)
-    flag = []
-    for i in range(len(page_url)):
-        flag.append(False)
-    for i in range(len(pages)):
+    idx = 0
+    while page_url[idx] == pages[idx].url:
+        idx = (idx + 1) % len(pages)
         await pages[i].bringToFront()
-        if page_url[i] == pages[i].url:
-            try:
-                await pages[i].click('.go-btn')
-                print('提交订单')
-                flag[i] = True
-                break
-            except:
-                await pages[i].reload()
-                await asyncio.sleep(click_freq)
-                count -= 1
-                if count < 0: break
-                print('未找到提交订单按钮')
-        if flag[i]: break
+        await pages[idx].reload()
+        try:
+            await pages[idx].click('.go-btn')
+            print('提交订单')
+            break
+        except:
+            await asyncio.sleep(click_freq)
+            print('未找到提交订单按钮')
     print('流程结束')
 
 
@@ -104,16 +98,16 @@ async def main(buy_time):
     await login(page)
     pages = await goto_cart_pages(browser)
     await choose_item(pages)
+    await settle(pages)
 
     # 等待抢购
     buy_time = datetime.datetime.strptime(buy_time, '%Y-%m-%d %H:%M:%S')
     wait_second = (buy_time - datetime.datetime.now()).seconds if \
         (buy_time - datetime.datetime.now()).days >= 0 else 0
-    print('距离时间还有{}秒'.format(wait_second))
+    print('距离时间还有{}秒\n'.format(wait_second))
     if wait_second - BEFORE_SECOND > 0:
         await asyncio.sleep(wait_second)
 
-    await settle(pages)
     await push_order(pages)
     await asyncio.sleep(3000)
 
