@@ -4,11 +4,11 @@ import asyncio
 import multiprocessing
 
 width, height = 1200, 768
-time_sc_login = 20  # 二维码扫描时间
+time_sc_login = 50  # 二维码扫描时间
 click_freq = 0.3  # 点击间隔
 repost_order = 0.3  # 页面加载时间
 BEFORE_SECOND = 1  # 提前2秒开始循环点击
-page_nums = 4
+page_nums = 1
 
 
 async def login(page):
@@ -42,7 +42,7 @@ async def choose_item(pages):
         await pages[i].bringToFront()
         while page_url[i] == pages[i].url:
             try:
-                await pages[i].click('[for=J_CheckBox_2738701342774]')
+                await pages[i].click('[for=J_CheckBox_2750006943813]')
                 break
             except:
                 await asyncio.sleep(click_freq)
@@ -75,10 +75,13 @@ async def push_order(pages):
     for page in pages:
         page_url.append(page.url)
     idx = 0
-    while page_url[idx] == pages[idx].url:
+    while True:
         idx = (idx + 1) % len(pages)
         await pages[idx].bringToFront()
-        await pages[idx].reload()
+        if page_url[idx] != pages[idx].url:
+            await pages[idx].goto(page_url[idx])
+        else:
+            await pages[idx].reload()
         try:
             await pages[idx].click('.go-btn')
             print('提交订单')
