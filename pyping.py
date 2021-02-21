@@ -3,6 +3,8 @@ import datetime
 import asyncio
 import multiprocessing
 
+# donggua ' s fill
+
 width, height = 1200, 768
 time_sc_login = 50  # 二维码扫描时间
 click_freq = 0.3  # 点击间隔
