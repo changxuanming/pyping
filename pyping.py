@@ -2,6 +2,8 @@ from pyppeteer import launch
 import datetime
 import asyncio
 import multiprocessing
+import configparser
+conf = configparser.ConfigParser()
 
 width, height = 1200, 768
 time_sc_login = 50  # 二维码扫描时间
@@ -42,7 +44,8 @@ async def choose_item(pages):
         await pages[i].bringToFront()
         while page_url[i] == pages[i].url:
             try:
-                await pages[i].click('[for=J_CheckBox_2750006943813]')
+                # await pages[i].click('[for=J_CheckBox_2750006943813]')
+                await pages[i].click('[for={}]'.format(str(conf['tmall']['cart'])))
                 break
             except:
                 await asyncio.sleep(click_freq)
@@ -120,7 +123,14 @@ def start(buy_time):
     n_e_l.run_until_complete(main(buy_time))
 
 
+def conf_init():
+    conf.read('conf.ini')
+    if len(conf['tmall']['cart']) < 10:
+        raise Exception('未配置购物车信息')
+
+
 if __name__ == '__main__':
+    conf_init()
     buy_time = input('请输入开售时间 【2020-02-06(空格)12:55:50】')
     processes = []
     for i in range(1):
