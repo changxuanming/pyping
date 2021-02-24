@@ -4,15 +4,17 @@ import asyncio
 import multiprocessing
 import configparser
 import tbtime
+
 tbtime = tbtime.tbtime
 conf = configparser.ConfigParser()
 
 width, height = 1200, 768
 time_sc_login = 20  # 二维码扫描时间
-click_freq = 0.3  # 点击间隔
+click_freq = 0.5  # 点击间隔
 repost_order = 0.3  # 页面加载时间
-BEFORE_SECOND = 1  # 提前2秒开始循环点击
+BEFORE_SECOND = 0  # 提前2秒开始循环点击
 page_nums = 1
+loop_click_sec = 7  # 持续抢购时间
 
 
 async def login(page):
@@ -52,6 +54,7 @@ async def choose_item(pages):
                 break
             except:
                 await asyncio.sleep(click_freq)
+                print('未找到商品标签')
                 # logging out not find item
 
 
@@ -81,7 +84,10 @@ async def push_order(pages):
     for page in pages:
         page_url.append(page.url)
     idx = 0
+    loop_times = int(loop_click_sec / click_freq)
     while True:
+        if loop_times < 1:
+            break
         idx = (idx + 1) % len(pages)
         await pages[idx].bringToFront()
         if page_url[idx] != pages[idx].url:
@@ -92,8 +98,8 @@ async def push_order(pages):
             await pages[idx].click('.go-btn')
             print('提交订单')
         except:
-            await asyncio.sleep(click_freq)
             print('未找到提交订单按钮')
+        await asyncio.sleep(click_freq)
 
 
 async def main(buy_time):
@@ -102,6 +108,7 @@ async def main(buy_time):
         headless=False,
         args=['--disable-infobars', f'--window-size={width},{height}']
     )
+    browser = await browser.createIncognitoBrowserContext()
     page = await browser.newPage()
     await login(page)
     pages = await goto_cart_pages(browser)
@@ -110,8 +117,6 @@ async def main(buy_time):
 
     # 等待抢购
     buy_time = datetime.datetime.strptime(buy_time, '%Y-%m-%d %H:%M:%S')
-    # wait_second = (buy_time - datetime.datetime.now()).seconds if \
-    #     (buy_time - datetime.datetime.now()).days >= 0 else 0
     now_time = datetime.datetime.strptime(tbtime(), '%Y-%m-%d %H:%M:%S')
     wait_second = (buy_time - now_time).seconds if \
         (buy_time - datetime.datetime.now()).days >= 0 else 0
