@@ -3,10 +3,12 @@ import datetime
 import asyncio
 import multiprocessing
 import configparser
+import tbtime
+tbtime = tbtime.tbtime
 conf = configparser.ConfigParser()
 
 width, height = 1200, 768
-time_sc_login = 50  # 二维码扫描时间
+time_sc_login = 20  # 二维码扫描时间
 click_freq = 0.3  # 点击间隔
 repost_order = 0.3  # 页面加载时间
 BEFORE_SECOND = 1  # 提前2秒开始循环点击
@@ -34,8 +36,6 @@ async def goto_cart_pages(browser) -> list:
     return pages
 
 
-# maotai J_CheckBox_2738701342774
-# test1 :J_CheckBox_2741016942258
 async def choose_item(pages):
     page_url = []
     for page in pages:
@@ -46,6 +46,9 @@ async def choose_item(pages):
             try:
                 # await pages[i].click('[for=J_CheckBox_2750006943813]')
                 await pages[i].click('[for={}]'.format(str(conf['tmall']['cart'])))
+                break
+            except KeyError:
+                print('未配置页面标签')
                 break
             except:
                 await asyncio.sleep(click_freq)
@@ -88,14 +91,13 @@ async def push_order(pages):
         try:
             await pages[idx].click('.go-btn')
             print('提交订单')
-            break
         except:
             await asyncio.sleep(click_freq)
             print('未找到提交订单按钮')
-    print('流程结束')
 
 
 async def main(buy_time):
+    conf_init()
     browser = await launch(
         headless=False,
         args=['--disable-infobars', f'--window-size={width},{height}']
@@ -108,7 +110,10 @@ async def main(buy_time):
 
     # 等待抢购
     buy_time = datetime.datetime.strptime(buy_time, '%Y-%m-%d %H:%M:%S')
-    wait_second = (buy_time - datetime.datetime.now()).seconds if \
+    # wait_second = (buy_time - datetime.datetime.now()).seconds if \
+    #     (buy_time - datetime.datetime.now()).days >= 0 else 0
+    now_time = datetime.datetime.strptime(tbtime(), '%Y-%m-%d %H:%M:%S')
+    wait_second = (buy_time - now_time).seconds if \
         (buy_time - datetime.datetime.now()).days >= 0 else 0
     print('距离时间还有{}秒\n'.format(wait_second))
     if wait_second - BEFORE_SECOND > 0:
@@ -130,7 +135,6 @@ def conf_init():
 
 
 if __name__ == '__main__':
-    conf_init()
     buy_time = input('请输入开售时间 【2020-02-06(空格)12:55:50】')
     processes = []
     for i in range(1):
